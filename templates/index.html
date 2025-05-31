@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Financial Data Fetcher</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f4f6f9;
+    color: #333;
+    margin: 0;
+    padding: 20px;
+  }
+  h1 {
+    color: #2c3e50;
+    text-align: center;
+  }
+  label {
+    font-weight: bold;
+    margin-top: 20px;
+    display: block;
+  }
+  input[type="text"], select {
+    width: 300px;
+    padding: 8px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  button {
+    background: #2c3e50;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    margin: 5px 5px 5px 0;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  button:hover {
+    background: #34495e;
+  }
+  #incomeOptions {
+    margin-top: 10px;
+    background: #ecf0f1;
+    padding: 10px;
+    border-radius: 4px;
+  }
+  h2 {
+    margin-top: 30px;
+    color: #2c3e50;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    background: white;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+  }
+  th {
+    background: #2c3e50;
+    color: white;
+  }
+  tr:nth-child(even) {
+    background: #f2f2f2;
+  }
+  tr:hover {
+    background: #e0e0e0;
+  }
+</style>
+</head>
+<body>
+<h1>📈 Financial Data Fetcher</h1>
+
+<label for="tickerInput">Enter NSE Ticker Symbol (e.g. RELIANCE.NS, TATAMOTORS.NS):</label>
+<input type="text" id="tickerInput" placeholder="Company Ticker">
+
+<label for="statementSelect">Choose Financial Statement:</label>
+<select id="statementSelect">
+  <option value="all">All</option>
+  <option value="income">Income Statement</option>
+  <option value="balance">Balance Sheet</option>
+  <option value="cashflow">Cash Flow</option>
+</select>
+
+<div id="incomeOptions" style="display: none;">
+  <h3>Income Statement Options:</h3>
+  <button onclick="showProperIncome()">Proper Format</button>
+</div>
+
+<button onclick="fetchFinancials()">🚀 Get Financial Data</button>
+
+<h2>Results</h2>
+<div id="result"></div>
+
+<script>
+let fetchedData = {};  // Store fetched JSON
+
+document.getElementById('statementSelect').addEventListener('change', function() {
+    document.getElementById('incomeOptions').style.display = (this.value === 'income') ? 'block' : 'none';
+});
+
+function fetchFinancials() {
+    const ticker = document.getElementById('tickerInput').value;
+    const formData = new FormData();
+    formData.append('ticker', ticker);
+
+    fetch('/get_financials', { method: 'POST', body: formData })
+    .then(response => response.json())
+    .then(data => {
+        fetchedData = data;  // Save for reuse
+        displayData();
+    })
+    .catch(error => {
+        document.getElementById('result').innerText = 'Error: ' + error;
+    });
+}
+
+function displayData() {
+    const type = document.getElementById('statementSelect').value;
+    let html = '';
+
+    if (type === 'all' || type === 'income') {
+        html += '<h3>Income Statement</h3>' + makeTable(fetchedData.income_statement);
+    }
+    if (type === 'all' || type === 'balance') {
+        html += '<h3>Balance Sheet</h3>' + makeTable(fetchedData.balance_sheet);
+    }
+    if (type === 'all' || type === 'cashflow') {
+        html += '<h3>Cash Flow Statement</h3>' + makeTable(fetchedData.cash_flow);
+    }
+
+    document.getElementById('result').innerHTML = html;
+}
+
+function makeTable(data) {
+    const dates = Object.keys(data);
+    if (dates.length === 0) return '<p>No data.</p>';
+
+    const rows = {};
+    dates.forEach(date => {
+        const obj = data[date];
+        Object.keys(obj).forEach(key => {
+            if (!rows[key]) rows[key] = {};
+            rows[key][date] = obj[key];
+        });
+    });
+
+    let table = '<table><tr><th>Particular</th>';
+    dates.forEach(date => {
+        table += `<th>${date}</th>`;
+    });
+    table += '</tr>';
+
+    Object.keys(rows).forEach(particular => {
+        table += `<tr><td>${particular}</td>`;
+        dates.forEach(date => {
+            const value = rows[particular][date];
+            table += `<td>${value !== null ? value : ''}</td>`;
+        });
+        table += '</tr>';
+    });
+    table += '</table>';
+    return table;
+}
+
+function showProperIncome() {
+    const data = fetchedData.income_statement;
+    const dates = Object.keys(data);
+    const rowsNeeded = [
+        'Total Revenue', 'Other Income', 'Total Revenue', 'Cost Of Revenue', 'Gross Profit',
+        'Selling General And Administration', 'EBITDA', 'Depreciation And Amortization In Income Statement',
+        'EBIT', 'Net Interest Income', 'Pretax Income', 'Tax Provision', 'Net Income',
+        'Basic EPS', 'Diluted EPS'
+    ];
+
+    const labelMap = {
+        'Total Revenue': '✅ Revenue from Operation',
+        'Other Income': '✅ Other Operations Income',
+        'Total Revenue': '✅ Total Revenue',
+        'Cost Of Revenue': '✅ COGS',
+        'Gross Profit': '✅ GROSS PROFIT',
+        'Selling General And Administration': '✅ SG&A',
+        'EBITDA': '✅ EBITDA',
+        'Depreciation And Amortization In Income Statement': '✅ D&A',
+        'EBIT': '✅ EBIT',
+        'Net Interest Income': '✅ INTEREST',
+        'Pretax Income': '✅ EBT',
+        'Tax Provision': '✅ TAX',
+        'Net Income': '✅ PAT',
+        'Basic EPS': '✅ BASIC EPS',
+        'Diluted EPS': '✅ DILUTED EPS'
+    };
+
+    let html = '<table><tr><th>Particular</th>';
+    dates.forEach(date => {
+        html += `<th>${date}</th>`;
+    });
+    html += '</tr>';
+
+    rowsNeeded.forEach(label => {
+        html += `<tr><td>${labelMap[label] || label}</td>`;
+        dates.forEach(date => {
+            const val = data[date][label] !== null ? data[date][label] : '';
+            html += `<td>${val}</td>`;
+        });
+        html += '</tr>';
+    });
+
+    html += '</table>';
+    document.getElementById('result').innerHTML = '<h3>✅ Proper Format: Income Statement</h3>' + html;
+}
+</script>
+</body>
+</html>
+
