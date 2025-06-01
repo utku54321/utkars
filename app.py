@@ -1,6 +1,9 @@
 from flask import Flask, request, jsonify, render_template
 import yfinance as yf
 import pandas as pd
+import bs4
+from bs4 import BeautifulSoup
+
 
 app = Flask(__name__)
 
