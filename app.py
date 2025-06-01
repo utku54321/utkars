@@ -1,14 +1,13 @@
 from flask import Flask, request, jsonify, render_template
 import yfinance as yf
-import pandas as pd
-from bs4 import BeautifulSoup
-
 
 app = Flask(__name__)
+
 
 @app.route('/')
 def index():
     return render_template('index.html')
+
 
 @app.route('/get_financials', methods=['POST'])
 def get_financials():
@@ -27,17 +26,15 @@ def get_financials():
     balance_data = prepare_data(ticker.balance_sheet)
     cashflow_data = prepare_data(ticker.cashflow)
 
-    # Directly return JSON (no to_json() or dumps needed!)
     return jsonify({
         'income_statement': income_data,
         'balance_sheet': balance_data,
         'cash_flow': cashflow_data
     })
 
+
 if __name__ == '__main__':
     app.run(debug=True)
-
-
 
 
 
